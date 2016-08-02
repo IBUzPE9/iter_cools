@@ -234,6 +234,17 @@ mod tests {
     }
 
     #[test]
+    fn test_map_ok() {
+        let x = vec![Ok(1),Ok(2),Err("ups"),Ok(4)];
+        let y = x.iter().cloned().map_ok(|x| x + 2).collect::<Result<Vec<usize>,_>>();
+        assert_eq!(Err("ups"), y);
+
+        let x:Vec<Result<usize,()>> = vec![Ok(1),Ok(2),Ok(3),Ok(4)];
+        let y = x.iter().cloned().map_ok(|x| x + 2).collect::<Result<Vec<usize>,_>>();
+        assert_eq!(Ok(vec![3,4,5,6]), y);        
+    }
+
+    #[test]
     fn test_join() {
         let v: Vec<u32> = vec![1,2,3,4,5,6];
         let d: Vec<u32> = vec![11,12,13,14,15,16,17,18];
