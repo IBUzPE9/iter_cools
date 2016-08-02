@@ -5,6 +5,9 @@ use std::iter::{once,Chain,Take,Once};
 
 /// Итератор, который разбивает итерационную последовательность на порции.
 /// Размер порций задается с помощью итератора `n`.
+/// Создается функцией [`chunks_iter()`]  типажа [`ChunksIteratorTrait`].
+/// [`chunks_iter()`]: trait.ChunksIteratorTrait.html#method.chunks_iter
+/// [`ChunksIteratorTrait`]: trait.ChunksIteratorTrait.html
 #[derive(Clone)]
 pub struct ChunksIterator<I,F,N>{
     iter:I,
@@ -35,6 +38,7 @@ where
 
 pub trait ChunksIteratorTrait{
     /// Создает итератор разбивающий итерационную последовательность на порции.
+    ///
     /// ```
     /// let x = (0..20u8).collect::<Vec<u8>>();
     /// let y = x.iter().chunks_iter([1,2,3].iter().cycle(),|a| a.cloned().collect::<Vec<u8>>()).collect::<Vec<_>>();
@@ -57,6 +61,9 @@ where
 {}
 
 /// Итератор, который заменяет элементы итерационной последовательности.
+/// Создается функцией [`map_ok()`]  типажа [`MapOkTrait`].
+/// [`map_ok()`]: trait.MapOkTrait.html#method.map_ok
+/// [`MapOkTrait`]: trait.MapOkTrait.html
 #[derive(Clone)]
 pub struct MapOkIterator<I,F>{
     iter:I,
@@ -77,11 +84,22 @@ where
 }
 
 pub trait MapOkTrait{
+    /// Создает итератор, который заменяет элементы итерационной последовательности.
+    ///
+    /// ```
+    /// let x = vec![Ok(1),Ok(2),Err("ups"),Ok(4)];
+    /// let y = x.iter().cloned().map_ok(|x| x + 2).collect::<Result<Vec<usize>,_>>();
+    /// assert_eq!(Err("ups"), y);
+    ///
+    /// let x:Vec<Result<usize,()>> = vec![Ok(1),Ok(2),Ok(3),Ok(4)];
+    /// let y = x.iter().cloned().map_ok(|x| x + 2).collect::<Result<Vec<usize>,_>>();
+    /// assert_eq!(Ok(vec![3,4,5,6]), y); 
+    /// ```    
     fn map_ok<F,A,B,E>(self, func:F) -> MapOkIterator<Self, F>
     where 
         Self:Sized+Iterator<Item=Result<A,E>>, 
-        F:FnMut(A) -> B {
-
+        F:FnMut(A) -> B 
+    {
         MapOkIterator{iter:self, f:func}
     }
 }
@@ -91,6 +109,9 @@ where I:Sized+Iterator<Item=Result<T,E>>{}
 
 
 /// Итератор, который фильтрует элементы итерационной последовательности.
+/// Создается функцией [`filter_ok()`]  типажа [`FilterOkTrait`].
+/// [`filter_ok()`]: trait.FilterOkTrait.html#method.filter_ok
+/// [`FilterOkTrait`]: trait.FilterOkTrait.html
 #[derive(Clone)]
 pub struct FilterOkIterator<I,P>{
     iter: I,
@@ -120,6 +141,7 @@ where
 
 pub trait FilterOkTrait{
     /// Создает итератор, который фильтрует элементы итерационной последовательности
+    ///
     /// ```
     /// let x = vec![Ok(1),Ok(2),Err("ups"),Ok(4)];
     /// let y = x.iter().cloned().filter_ok(|&x| x>2).collect::<Result<Vec<usize>,_>>();
@@ -142,6 +164,9 @@ impl<I,T,E> FilterOkTrait for I
 where I:Sized+Iterator<Item=Result<T,E>>{}
 
 /// Итератор, который объединяет две итерационные последовательности.
+/// Создается функцией [`join()`]  типажа [`Join`].
+/// [`join()`]: trait.Join.html#method.join
+/// [`Join`]: trait.Join.html
 #[derive(Clone)]
 pub struct JoinIterator<I1,I2,T1,T2> where I1:Iterator<Item=T1>, I2:Iterator<Item=T2>, T2:Into<T1>{
     it1:I1,
@@ -184,6 +209,7 @@ where
     T2:Into<T1> 
 {
     /// Создает итератор, который объединяет две итерационные последовательности.
+    ///
     /// ```
     /// let v: Vec<u32> = vec![1,2,3,4,5,6];
     /// let d: Vec<u32> = vec![11,12,13,14,15,16,17,18];
@@ -249,7 +275,7 @@ mod tests {
         let v: Vec<u32> = vec![1,2,3,4,5,6];
         let d: Vec<u32> = vec![11,12,13,14,15,16,17,18];
 
-        let s = v.iter().cloned().join(d.iter().cloned()).collect::<Vec<u32>>();
+        let s = v.iter().cloned().join(d).collect::<Vec<u32>>();
         assert_eq!(vec![1, 11, 2, 12, 3, 13, 4, 14, 5, 15, 6], s);
        
         let s = v.iter().map(|x| x.to_string()).join(::std::iter::repeat("+").take(2)).collect::<String>();
