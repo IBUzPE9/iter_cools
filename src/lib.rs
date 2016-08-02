@@ -40,6 +40,8 @@ pub trait ChunksIteratorTrait{
     /// Создает итератор разбивающий итерационную последовательность на порции.
     ///
     /// ```
+    /// use iter_cools::*;    
+    /// 
     /// let x = (0..20u8).collect::<Vec<u8>>();
     /// let y = x.iter().chunks_iter([1,2,3].iter().cycle(),|a| a.cloned().collect::<Vec<u8>>()).collect::<Vec<_>>();
     /// let z = vec![vec![0],vec![1,2],vec![3,4,5],vec![6],vec![7,8],vec![9,10,11],vec![12],vec![13,14],vec![15,16,17],vec![18],vec![19]];
@@ -87,6 +89,8 @@ pub trait MapOkTrait{
     /// Создает итератор, который заменяет элементы итерационной последовательности.
     ///
     /// ```
+    /// use iter_cools::*;    
+    ///     
     /// let x = vec![Ok(1),Ok(2),Err("ups"),Ok(4)];
     /// let y = x.iter().cloned().map_ok(|x| x + 2).collect::<Result<Vec<usize>,_>>();
     /// assert_eq!(Err("ups"), y);
@@ -143,6 +147,8 @@ pub trait FilterOkTrait{
     /// Создает итератор, который фильтрует элементы итерационной последовательности
     ///
     /// ```
+    /// use iter_cools::*;    
+    ///     
     /// let x = vec![Ok(1),Ok(2),Err("ups"),Ok(4)];
     /// let y = x.iter().cloned().filter_ok(|&x| x>2).collect::<Result<Vec<usize>,_>>();
     /// assert_eq!(Err("ups"), y);
@@ -211,14 +217,16 @@ where
     /// Создает итератор, который объединяет две итерационные последовательности.
     ///
     /// ```
+    /// use iter_cools::*;    
+    ///     
     /// let v: Vec<u32> = vec![1,2,3,4,5,6];
     /// let d: Vec<u32> = vec![11,12,13,14,15,16,17,18];
     ///
-    /// let s = v.iter().cloned().join(d.iter().cloned()).collect::<Vec<u32>>();
-    /// assert_eq!(vec![1, 11, 2, 12, 3, 13, 4, 14, 5, 15, 6], s);
-    ///
     /// let s = v.iter().map(|x| x.to_string()).join(::std::iter::repeat("+").take(2)).collect::<String>();
     /// assert_eq!("1+2+3", s);
+    ///
+    /// let s = v.into_iter().join(d).collect::<Vec<u32>>();
+    /// assert_eq!(vec![1, 11, 2, 12, 3, 13, 4, 14, 5, 15, 6], s);    
     /// ```    
     fn join(self, i:I) -> JoinIterator<Self,I::IntoIter,T1,T2>{
         JoinIterator{it1:self, it2:i.into_iter(), idx:Some(false), ini:false, nxt:None}
@@ -274,11 +282,11 @@ mod tests {
     fn test_join() {
         let v: Vec<u32> = vec![1,2,3,4,5,6];
         let d: Vec<u32> = vec![11,12,13,14,15,16,17,18];
-
-        let s = v.iter().cloned().join(d).collect::<Vec<u32>>();
-        assert_eq!(vec![1, 11, 2, 12, 3, 13, 4, 14, 5, 15, 6], s);
        
         let s = v.iter().map(|x| x.to_string()).join(::std::iter::repeat("+").take(2)).collect::<String>();
         assert_eq!("1+2+3", s);
+
+        let s = v.into_iter().join(d).collect::<Vec<u32>>();
+        assert_eq!(vec![1, 11, 2, 12, 3, 13, 4, 14, 5, 15, 6], s);        
     }    
 }
