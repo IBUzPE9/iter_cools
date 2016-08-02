@@ -1,4 +1,4 @@
-//! iters-cool - some iterators for fun
+//! iter-cools - some iterators for fun
 use std::borrow::Borrow;
 use std::iter::{once,Chain,Take,Once};
 
