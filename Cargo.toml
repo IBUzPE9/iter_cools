@@ -1,0 +1,5 @@
+[package]
+name = "iter-cools"
+version = "0.1.0"
+
+[dependencies]
