@@ -170,9 +170,9 @@ impl<I,T,E> FilterOkTrait for I
 where I:Sized+Iterator<Item=Result<T,E>>{}
 
 /// Итератор, который объединяет две итерационные последовательности.
-/// Создается функцией [`join()`]  типажа [`Join`].
-/// [`join()`]: trait.Join.html#method.join
-/// [`Join`]: trait.Join.html
+/// Создается функцией [`join_iter()`]  типажа [`JoinTrait`].
+/// [`join_iter()`]: trait.Join.html#method.join
+/// [`JoinTrait`]: trait.JoinTrait.html
 #[derive(Clone)]
 pub struct JoinIterator<I1,I2,T1,T2> where I1:Iterator<Item=T1>, I2:Iterator<Item=T2>, T2:Into<T1>{
     it1:I1,
@@ -208,7 +208,7 @@ where
     }
 }
 
-pub trait Join<I, T1, T2>
+pub trait JoinTrait<I, T1, T2>
 where 
     Self: Sized+Iterator<Item=T1>, 
     I: IntoIterator<Item=T2>, 
@@ -222,71 +222,21 @@ where
     /// let v: Vec<u32> = vec![1,2,3,4,5,6];
     /// let d: Vec<u32> = vec![11,12,13,14,15,16,17,18];
     ///
-    /// let s = v.iter().map(|x| x.to_string()).join(::std::iter::repeat("+").take(2)).collect::<String>();
+    /// let s = v.iter().map(|x| x.to_string()).join_iter(::std::iter::repeat("+").take(2)).collect::<String>();
     /// assert_eq!("1+2+3", s);
     ///
-    /// let s = v.into_iter().join(d).collect::<Vec<u32>>();
+    /// let s = v.into_iter().join_iter(d).collect::<Vec<u32>>();
     /// assert_eq!(vec![1, 11, 2, 12, 3, 13, 4, 14, 5, 15, 6], s);    
     /// ```    
-    fn join(self, i:I) -> JoinIterator<Self,I::IntoIter,T1,T2>{
+    fn join_iter(self, i:I) -> JoinIterator<Self,I::IntoIter,T1,T2>{
         JoinIterator{it1:self, it2:i.into_iter(), idx:Some(false), ini:false, nxt:None}
     }
 }
 
-impl<I, T1, T2, X> Join<I, T1, T2> for X 
+impl<I, T1, T2, X> JoinTrait<I, T1, T2> for X 
 where 
     X: Sized + Iterator<Item=T1>, 
     I: IntoIterator<Item=T2>, 
     T2:Into<T1>
 {}
  
-
-
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_chunks_iter() {
-        let x = (0..20u8).collect::<Vec<u8>>();
-        let y = x.iter().chunks_iter([1,2,3].iter().cycle(),|a| a.cloned().collect::<Vec<u8>>()).collect::<Vec<_>>();
-        let z = vec![vec![0],vec![1,2],vec![3,4,5],vec![6],vec![7,8],vec![9,10,11],vec![12],vec![13,14],vec![15,16,17],vec![18],vec![19]];
-        assert_eq!(z, y);
-    }
-
-    #[test]
-    fn test_filter_ok() {
-        let x = vec![Ok(1),Ok(2),Err("ups"),Ok(4)];
-        let y = x.iter().cloned().filter_ok(|&x| x>2).collect::<Result<Vec<usize>,_>>();
-        assert_eq!(Err("ups"), y);
-
-        let x:Vec<Result<usize,()>> = vec![Ok(1),Ok(2),Ok(3),Ok(4)];
-        let y = x.iter().cloned().filter_ok(|&x| x>2).collect::<Result<Vec<usize>,_>>();
-        assert_eq!(Ok(vec![3,4]), y);        
-    }
-
-    #[test]
-    fn test_map_ok() {
-        let x = vec![Ok(1),Ok(2),Err("ups"),Ok(4)];
-        let y = x.iter().cloned().map_ok(|x| x + 2).collect::<Result<Vec<usize>,_>>();
-        assert_eq!(Err("ups"), y);
-
-        let x:Vec<Result<usize,()>> = vec![Ok(1),Ok(2),Ok(3),Ok(4)];
-        let y = x.iter().cloned().map_ok(|x| x + 2).collect::<Result<Vec<usize>,_>>();
-        assert_eq!(Ok(vec![3,4,5,6]), y);        
-    }
-
-    #[test]
-    fn test_join() {
-        let v: Vec<u32> = vec![1,2,3,4,5,6];
-        let d: Vec<u32> = vec![11,12,13,14,15,16,17,18];
-       
-        let s = v.iter().map(|x| x.to_string()).join(::std::iter::repeat("+").take(2)).collect::<String>();
-        assert_eq!("1+2+3", s);
-
-        let s = v.into_iter().join(d).collect::<Vec<u32>>();
-        assert_eq!(vec![1, 11, 2, 12, 3, 13, 4, 14, 5, 15, 6], s);        
-    }    
-}
