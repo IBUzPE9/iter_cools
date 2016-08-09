@@ -2,6 +2,21 @@
 use std::borrow::Borrow;
 use std::iter::{once,Chain,Take,Once};
 
+/// Создает итератор из перечисленных значений.
+/// 
+/// ```
+/// #[macro_use]
+/// extern crate iter_cools;
+/// use iter_cools::*;    
+/// 
+/// fn main(){
+///     assert_eq!(iter_it!(1,3,5,7).collect::<Vec<u8>>(), vec![1,3,5,7]);
+/// }
+/// ```    
+#[macro_export]
+macro_rules! iter_it{
+    ($n:expr,$($m:expr),*) => {::std::iter::once($n)$(.chain(::std::iter::once($m)))*}
+}
 
 /// Итератор, который разбивает итерационную последовательность на порции.
 /// Размер порций задается с помощью итератора `n`.
@@ -171,7 +186,7 @@ where I:Sized+Iterator<Item=Result<T,E>>{}
 
 /// Итератор, который объединяет две итерационные последовательности.
 /// Создается функцией [`join_iter()`]  типажа [`JoinTrait`].
-/// [`join_iter()`]: trait.Join.html#method.join
+/// [`join_iter()`]: trait.JoinTrait.html#method.join
 /// [`JoinTrait`]: trait.JoinTrait.html
 #[derive(Clone)]
 pub struct JoinIterator<I1,I2,T1,T2> where I1:Iterator<Item=T1>, I2:Iterator<Item=T2>, T2:Into<T1>{
