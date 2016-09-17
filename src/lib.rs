@@ -61,7 +61,7 @@ pub trait ChunksIteratorTrait{
     /// let y = x.iter().chunks_iter([1,2,3].iter().cycle(),|a| a.cloned().collect::<Vec<u8>>()).collect::<Vec<_>>();
     /// let z = vec![vec![0],vec![1,2],vec![3,4,5],vec![6],vec![7,8],vec![9,10,11],vec![12],vec![13,14],vec![15,16,17],vec![18],vec![19]];
     /// assert_eq!(z, y);
-    /// ```    
+    /// ```
     fn chunks_iter<F,B,T,N,M>(self, n:N, f:F) -> ChunksIterator<Self,F,N::IntoIter>
     where 
         N:IntoIterator<Item=M>, M:Borrow<usize>,
