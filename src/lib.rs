@@ -1,8 +1,12 @@
-//! iter-cools - кое-какие итераторы 
+//! iter-cools - some iterators for fun 
 use std::borrow::Borrow;
 use std::iter::{once,Chain,Take,Once};
 
-/// Создает итератор из перечисленных значений.
+use std::io;
+use std::error::Error;
+use std::fmt;
+
+/// Creates an iterator from the arguments.
 /// 
 /// ```
 /// #[macro_use]
@@ -18,9 +22,9 @@ macro_rules! iter_it{
     ($n:expr,$($m:expr),*) => {::std::iter::once($n)$(.chain(::std::iter::once($m)))*}
 }
 
-/// Итератор, который разбивает итерационную последовательность на порции.
-/// Размер порций задается с помощью итератора `n`.
-/// Создается функцией [`chunks_iter()`]  типажа [`ChunksIteratorTrait`].
+/// An iterator that splits sequence into chunks.
+/// Chunck size is specified by the iterator `n`.
+/// This struct is created by the [`chunks_iter()`] method on [`ChunksIteratorTrait`].
 /// [`chunks_iter()`]: trait.ChunksIteratorTrait.html#method.chunks_iter
 /// [`ChunksIteratorTrait`]: trait.ChunksIteratorTrait.html
 #[derive(Clone)]
@@ -52,14 +56,21 @@ where
 }
 
 pub trait ChunksIteratorTrait{
-    /// Создает итератор разбивающий итерационную последовательность на порции.
+    /// It creates an iterator that splits sequence into chunks.
     ///
     /// ```
     /// use iter_cools::*;    
     /// 
     /// let x = (0..20u8).collect::<Vec<u8>>();
+    ///
     /// let y = x.iter().chunks_iter([1,2,3].iter().cycle(),|a| a.cloned().collect::<Vec<u8>>()).collect::<Vec<_>>();
-    /// let z = vec![vec![0],vec![1,2],vec![3,4,5],vec![6],vec![7,8],vec![9,10,11],vec![12],vec![13,14],vec![15,16,17],vec![18],vec![19]];
+    ///
+    /// let z = vec![   vec![0],    vec![1,2],      vec![3,4,5], 
+    ///                 vec![6],    vec![7,8],      vec![9,10,11],
+    ///                 vec![12],   vec![13,14],    vec![15,16,17],
+    ///                 vec![18],   vec![19]
+    ///             ];
+    ///
     /// assert_eq!(z, y);
     /// ```
     fn chunks_iter<F,B,T,N,M>(self, n:N, f:F) -> ChunksIterator<Self,F,N::IntoIter>
@@ -77,8 +88,17 @@ where
     I:Iterator<Item=T>,
 {}
 
-/// Итератор, который заменяет элементы итерационной последовательности.
-/// Создается функцией [`map_ok()`]  типажа [`MapOkTrait`].
+#[test]
+fn test_chunks(){
+    fn sss<I:Iterator<Item=u8>>(i:I) -> u8{
+        i.sum()
+    }
+    let x = (0..20u8).chunks_iter(std::iter::repeat(2),|x| -> u8 {x.sum()} ).collect::<Vec<_>>();
+    assert_eq!(x, vec![]);
+}
+
+/// An iterator that maps the values of `iter` with `f`.
+/// This struct is created by the [`map_ok()`] method on [`MapOkTrait`].
 /// [`map_ok()`]: trait.MapOkTrait.html#method.map_ok
 /// [`MapOkTrait`]: trait.MapOkTrait.html
 #[derive(Clone)]
@@ -101,7 +121,7 @@ where
 }
 
 pub trait MapOkTrait{
-    /// Создает итератор, который заменяет элементы итерационной последовательности.
+    /// Takes a closure and creates an iterator which calls that closure on each `Ok(_)` element.
     ///
     /// ```
     /// use iter_cools::*;    
@@ -127,8 +147,8 @@ impl<I,T,E> MapOkTrait for I
 where I:Sized+Iterator<Item=Result<T,E>>{}
 
 
-/// Итератор, который фильтрует элементы итерационной последовательности.
-/// Создается функцией [`filter_ok()`]  типажа [`FilterOkTrait`].
+/// An iterator that filters the elements of iter with predicate.
+/// This struct is created by the [`filter_ok()`]  method on [`FilterOkTrait`].
 /// [`filter_ok()`]: trait.FilterOkTrait.html#method.filter_ok
 /// [`FilterOkTrait`]: trait.FilterOkTrait.html
 #[derive(Clone)]
@@ -159,7 +179,7 @@ where
 }
 
 pub trait FilterOkTrait{
-    /// Создает итератор, который фильтрует элементы итерационной последовательности
+    /// Creates an iterator which uses a closure to determine if an element should be yielded.
     ///
     /// ```
     /// use iter_cools::*;    
@@ -184,12 +204,12 @@ pub trait FilterOkTrait{
 impl<I,T,E> FilterOkTrait for I 
 where I:Sized+Iterator<Item=Result<T,E>>{}
 
-/// Итератор, который объединяет две итерационные последовательности.
-/// Создается функцией [`join_iter()`]  типажа [`JoinTrait`].
-/// [`join_iter()`]: trait.JoinTrait.html#method.join
-/// [`JoinTrait`]: trait.JoinTrait.html
+/// An iterator that combines two iterative sequences.
+/// This struct is created by the [`punctuate()`] method on [`PunctuateTrait`].
+/// [`punctuate()`]: trait.PunctuateTrait.html#method.join
+/// [`PunctuateTrait`]: trait.PunctuateTrait.html
 #[derive(Clone)]
-pub struct JoinIterator<I1,I2,T1,T2> where I1:Iterator<Item=T1>, I2:Iterator<Item=T2>, T2:Into<T1>{
+pub struct PunctuateIterator<I1,I2,T1,T2> where I1:Iterator<Item=T1>, I2:Iterator<Item=T2>, T2:Into<T1>{
     it1:I1,
     it2:I2,
     idx:Option<bool>,
@@ -197,7 +217,7 @@ pub struct JoinIterator<I1,I2,T1,T2> where I1:Iterator<Item=T1>, I2:Iterator<Ite
     ini:bool
 }
 
-impl<I1,I2,T1,T2> Iterator for JoinIterator<I1,I2,T1,T2> 
+impl<I1,I2,T1,T2> Iterator for PunctuateIterator<I1,I2,T1,T2> 
 where 
     I1: Iterator<Item=T1>, 
     I2: Iterator<Item=T2>, 
@@ -223,13 +243,13 @@ where
     }
 }
 
-pub trait JoinTrait<I, T1, T2>
+pub trait PunctuateTrait<I, T1, T2>
 where 
     Self: Sized+Iterator<Item=T1>, 
     I: IntoIterator<Item=T2>, 
     T2:Into<T1> 
 {
-    /// Создает итератор, который объединяет две итерационные последовательности.
+    /// Creates iterator that combines two iterative sequences.
     ///
     /// ```
     /// use iter_cools::*;    
@@ -237,21 +257,149 @@ where
     /// let v: Vec<u32> = vec![1,2,3,4,5,6];
     /// let d: Vec<u32> = vec![11,12,13,14,15,16,17,18];
     ///
-    /// let s = v.iter().map(|x| x.to_string()).join_iter(::std::iter::repeat("+").take(2)).collect::<String>();
+    /// let s = v.iter().map(|x| x.to_string())
+    ///                 .punctuate(::std::iter::repeat("+").take(2))
+    ///                 .collect::<String>();
+    ///
     /// assert_eq!("1+2+3", s);
     ///
-    /// let s = v.into_iter().join_iter(d).collect::<Vec<u32>>();
+    /// let s = v.into_iter().punctuate(d).collect::<Vec<u32>>();
     /// assert_eq!(vec![1, 11, 2, 12, 3, 13, 4, 14, 5, 15, 6], s);    
     /// ```    
-    fn join_iter(self, i:I) -> JoinIterator<Self,I::IntoIter,T1,T2>{
-        JoinIterator{it1:self, it2:i.into_iter(), idx:Some(false), ini:false, nxt:None}
+    fn punctuate(self, i:I) -> PunctuateIterator<Self,I::IntoIter,T1,T2>{
+        PunctuateIterator{it1:self, it2:i.into_iter(), idx:Some(false), ini:false, nxt:None}
     }
 }
 
-impl<I, T1, T2, X> JoinTrait<I, T1, T2> for X 
+impl<I, T1, T2, X> PunctuateTrait<I, T1, T2> for X 
 where 
     X: Sized + Iterator<Item=T1>, 
     I: IntoIterator<Item=T2>, 
     T2:Into<T1>
 {}
- 
+
+/// An iterator that yields `None` forever after the underlying iterator yields `Some(Err(_))` once.
+/// This struct is created by the [`fuse_err()`] on [`FuseErrTrait`].
+/// [`fuse_err()`]: trait.FuseErrTrait.html#method.fuse_err
+/// [`FuseErrTrait`]:trait.FuseErrTrait.html
+#[derive(Clone)]
+pub struct FuseErrIterator<I>(Option<I>);
+
+impl<I,A,E> Iterator for FuseErrIterator<I> 
+where I:Iterator<Item=Result<A,E>> {
+    type Item = Result<A,E>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Result<A,E>> {
+        let res = self.0.as_mut().and_then(|x| x.next());
+        if let Some(Err(_)) = res { self.0 = None };
+        res
+    }
+}
+
+pub trait FuseErrTrait{
+    /// Creates an iterator which ends after the first `Some(Err(_))`.
+    ///
+    /// ```
+    /// use iter_cools::*;    
+    ///      
+    /// let v = vec![Ok(1), Ok(2), Err("ups"), Ok(4)];
+    /// let iter = v.into_iter().fuse_err();    
+    /// assert_eq!(Some(Err("ups")), iter.last());
+    /// ```       
+    fn fuse_err<A,E>(self) -> FuseErrIterator<Self> 
+    where Self: Sized + Iterator<Item=Result<A,E>> {
+        FuseErrIterator(Some(self))
+    }
+}
+
+impl<I,T,E> FuseErrTrait for I 
+where I:Sized+Iterator<Item=Result<T,E>> {}
+
+
+#[derive(Debug,Copy,Clone)]
+pub enum RWError<R,W>{
+    Reader(R),
+    Writer(W)
+}
+
+impl<R,W> fmt::Display for RWError<R,W> 
+where R: fmt::Display, W: fmt::Display
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self{
+            &RWError::Reader(ref e) => write!(f, "RWError::Reader {}", e),
+            &RWError::Writer(ref e) => write!(f, "RWError::Writer {}", e),
+        }
+    }
+}
+
+impl<R,W> Error for RWError<R,W> 
+where R: Error, W: Error
+{
+    fn description(&self) -> &str {
+        match self{
+            &RWError::Reader(ref e) => e.description(),
+            &RWError::Writer(ref e) => e.description(),
+        }
+    }
+
+    fn cause(&self) -> Option<&Error> {
+        match self{
+            &RWError::Reader(ref e) => e.cause(),
+            &RWError::Writer(ref e) => e.cause(),
+        }
+    }    
+}
+
+pub trait WriteIterBytes {
+    /// Attempts to write an entire iterator to the writer. 
+    /// 
+    /// ```
+    /// use iter_cools::*;    
+    ///        
+    /// let mut dest = vec![];
+    /// (0..10).into_iter().write_to(&mut dest).unwrap();
+    /// assert_eq!(dest, vec![0,1,2,3,4,5,6,7,8,9]); 
+    /// ```     
+     fn write_to<W:io::Write>(self, &mut W) -> Result<u64, RWError<(), io::Error>>;
+}
+
+pub trait WriteIterResults<E> {
+    /// Attempts to write an entire iterator to the writer.
+    /// 
+    /// ```
+    /// use iter_cools::*;    
+    ///        
+    /// let mut dest = vec![];
+    /// (0..10).into_iter().map(|b| Ok::<u8,()>(b)).write_to(&mut dest).unwrap();
+    /// assert_eq!(dest, vec![0,1,2,3,4,5,6,7,8,9]); 
+    /// ```    
+     fn write_to<W:io::Write>(self, &mut W) -> Result<u64, RWError<E, io::Error>>;
+}
+
+impl<T> WriteIterBytes for T
+where T: Iterator<Item=u8>
+{
+    fn write_to<W:io::Write>(self, w: &mut W) -> Result<u64, RWError<(), io::Error>>{
+        let mut cnt: u64 = 0;
+        for b in self {
+            w.write_all(&[b]).map_err(|e| RWError::Writer(e))?;
+            cnt+=1;
+        }
+        Ok(cnt)
+    }
+}
+
+impl<T,E> WriteIterResults<E> for T
+where T: Iterator<Item=Result<u8,E>>
+{
+    fn write_to<W:io::Write>(self, mut w: &mut W) -> Result<u64, RWError<E, io::Error>>{
+        let mut cnt: u64 = 0;
+        for b in self {
+            w.write_all(&[b.map_err(|e| RWError::Reader(e))?]).map_err(|e| RWError::Writer(e))?;
+            cnt+=1;
+        }
+        Ok(cnt)
+    }
+}
